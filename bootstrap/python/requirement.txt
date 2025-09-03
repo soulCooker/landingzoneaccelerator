@@ -1,0 +1,17 @@
+# Requirements for LZA Bootstrap Python Scripts
+# This file contains the dependencies for init_oss.py and init_ram_role.py
+
+# Alibaba Cloud OSS SDK v2 - for object storage operations
+alibabacloud-oss-v2>=1.0.0
+
+# Alibaba Cloud OpenAPI SDK - for API communications
+alibabacloud-tea-openapi>=0.3.0
+
+# Alibaba Cloud Credentials - for authentication
+alibabacloud-credentials>=0.3.0
+
+# Alibaba Cloud Tea Util - utility functions
+alibabacloud-tea-util>=0.3.0
+
+# Alibaba Cloud OpenAPI Util - OpenAPI utility functions
+alibabacloud-openapi-util>=0.2.0
