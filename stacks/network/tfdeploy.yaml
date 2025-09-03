@@ -1,0 +1,117 @@
+format_version: IaCService/2021-08-06
+description: 网络模块部署
+
+upstream_input:
+  - name: resource_structure_stack
+    source: "{IaCEndpoint}/{AccountId}/resource_structure"
+
+deployment:
+  - name: network
+    inputs:
+      # Provider Configuration
+      cen_account_id: upstream_input.resource_structure_stack.role_to_account_mapping.network
+      dmz_account_id: upstream_input.resource_structure_stack.role_to_account_mapping.network
+      region: "cn-hangzhou"
+
+      # CEN variables
+      cen_instance_name: "lz-cen"
+      cen_instance_description: "Landing Zone CEN for tests"
+      cen_instance_tags:
+        env: "test"
+        project: "landing-zone"
+      transit_router_name: "lz-tr"
+      transit_router_description: "Landing Zone Transit Router for tests"
+      transit_router_tags:
+        env: "test"
+        project: "landing-zone"
+
+      # DMZ variables
+      dmz_vpc_name: "lz-dmz-vpc"
+      dmz_vpc_description: "Landing Zone DMZ VPC for tests"
+      dmz_vpc_cidr: "10.2.0.0/16"
+      dmz_egress_nat_gateway_name: "lz-dmz-nat"
+      dmz_egress_eip_instances:
+        - payment_type: "PayAsYouGo"
+          eip_address_name: "lz-dmz-eip"
+          tags:
+            Environment: "test"
+            Project: "landing-zone"
+            Type: "comprehensive"
+      dmz_enable_common_bandwidth_package: true
+      dmz_common_bandwidth_package_name: "lz-dmz-bwp"
+      dmz_common_bandwidth_package_bandwidth: "5"
+      dmz_common_bandwidth_package_internet_charge_type: "PayByBandwidth"
+      dmz_common_bandwidth_package_ratio: 20
+      dmz_vswitch_for_tr:
+        - zone_id: "cn-hangzhou-j"
+          vswitch_name: "lz-dmz-tr-vsw-1"
+          vswitch_description: "Primary Transit Router vswitch"
+          vswitch_cidr: "10.2.1.0/29"
+        - zone_id: "cn-hangzhou-k"
+          vswitch_name: "lz-dmz-tr-vsw-2"
+          vswitch_description: "Secondary Transit Router vswitch"
+          vswitch_cidr: "10.2.1.8/29"
+      dmz_vswitch_for_nat_gateway:
+        zone_id: "cn-hangzhou-j"
+        vswitch_name: "lz-dmz-nat-vsw"
+        vswitch_description: "NAT Gateway vswitch"
+        vswitch_cidr: "10.2.2.0/24"
+      dmz_vswitch:
+        - zone_id: "cn-hangzhou-j"
+          vswitch_name: "lz-dmz-vsw-1"
+          vswitch_description: "General vswitch 1"
+          vswitch_cidr: "10.2.3.0/24"
+        - zone_id: "cn-hangzhou-k"
+          vswitch_name: "lz-dmz-vsw-2"
+          vswitch_description: "General vswitch 2"
+          vswitch_cidr: "10.2.4.0/24"
+      dmz_tr_attachment_name: "lz-dmz-tr-attachment"
+      dmz_tr_attachment_description: "Landing Zone DMZ Transit Router attachment"
+      dmz_outbound_route_entry_name: "lz-dmz-outbound-route"
+      dmz_outbound_route_entry_description: "Landing Zone DMZ outbound route entry"
+
+publish_output:
+  # CEN outputs
+  - name: cen_instance_id
+    description: "The ID of the CEN instance"
+    value: deployment.network.cen_instance_id
+  - name: transit_router_id
+    description: "The ID of the Transit Router"
+    value: deployment.network.transit_router_id
+  - name: system_transit_router_route_table_id
+    description: "The ID of the system transit router route table"
+    value: deployment.network.system_transit_router_route_table_id
+
+  # DMZ outputs
+  - name: dmz_vpc_id
+    description: "The ID of the DMZ VPC"
+    value: deployment.network.dmz_vpc_id
+  - name: dmz_route_table_id
+    description: "The route table ID of the DMZ VPC"
+    value: deployment.network.dmz_route_table_id
+  - name: dmz_nat_gateway_id
+    description: "The ID of the DMZ NAT Gateway"
+    value: deployment.network.nat_gateway_id
+  - name: dmz_transit_router_attachment_id
+    description: "The ID of the DMZ Transit Router attachment"
+    value: deployment.network.transit_router_vpc_attachment_id
+  - name: dmz_transit_router_outbound_route_entry_id
+    description: "The ID of the DMZ outbound route entry"
+    value: deployment.network.transit_router_outbound_route_entry_id
+  - name: dmz_eip_instances
+    description: "The EIP instances created for DMZ"
+    value: deployment.network.eip_instances
+  - name: dmz_common_bandwidth_package_id
+    description: "The ID of the DMZ common bandwidth package"
+    value: deployment.network.common_bandwidth_package_id
+  - name: dmz_vswitch_for_tr
+    description: "The Transit Router vswitches for DMZ"
+    value: deployment.network.dmz_vswitch_for_tr
+  - name: dmz_vswitch_for_nat_gateway
+    description: "The NAT Gateway vswitch for DMZ"
+    value: deployment.network.dmz_vswitch_for_nat_gateway
+  - name: dmz_vswitch
+    description: "The general vswitches for DMZ"
+    value: deployment.network.dmz_vswitch
+
+

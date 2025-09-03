@@ -1,0 +1,51 @@
+format_version: IaCService/2021-08-06
+description: 创建 vpc & vswitch
+variable:
+  - name: region
+    type: string
+    default: "cn-beijing"
+  - name: vpc_name
+    type: string
+  - name: vpc_cidr
+    type: string
+  - name: zone_ids
+    type: list(string)
+  - name: vswitch_cidrs
+    type: list(string)
+
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.251.0"
+
+provider:
+  - type: alicloud
+    name: this
+    config:
+      region: var.region
+
+component:
+  - name: vpc
+    source: "alibaba/vpc/alicloud"
+    version: "1.11.0"
+    inputs:
+      vpc_name: var.vpc_name
+      vpc_cidr: var.vpc_cidr
+      availability_zones: var.zone_ids
+      vswitch_cidrs: var.vswitch_cidrs
+    providers:
+      alicloud: provider.alicloud.this
+  - name: security_group
+    source: "alibaba/security-group/alicloud"
+    version: "2.4.1"
+    inputs:
+      create: true
+      vpc_id: component.vpc.vpc_id
+    providers:
+      alicloud: provider.alicloud.this
+
+output:
+  - name: vpc_id
+    type: string
+    description: "The id of vpc created"
+    value: component.vpc.vpc_id

@@ -1,0 +1,136 @@
+format_version: IaCService/2021-08-06
+description: 防护规则搭建
+
+variable:
+  - name: region
+    type: string
+  - name: security_account_id
+    type: string
+  - name: aggregator_name
+    type: string
+    default: "LandingZoneConfigAggregator"
+  - name: enable_compliance_pack
+    type: bool
+    default: true
+  - name: compliance_pack_name
+    type: string
+    default: "LandingZoneCompliancePack"
+  - name: risk_level
+    type: number
+    default: 1
+  - name: template_based_rules
+    type: |
+      list(object({
+        rule_name                       = string
+        description                     = string
+        source_template_id              = string
+        input_parameters                = optional(map(string), {})
+        maximum_execution_frequency     = optional(string, "TwentyFour_Hours")
+        scope_compliance_resource_types = optional(list(string), [])
+        risk_level                      = optional(number, 1)
+        trigger_types                   = optional(string, "ConfigurationItemChangeNotification")
+        tag_key_scope                   = optional(string)
+        tag_value_scope                 = optional(string)
+        region_ids_scope                = optional(string)
+        exclude_resource_ids_scope      = optional(string)
+        resource_group_ids_scope        = optional(list(string), [])
+        add_to_compliance_pack          = optional(bool, true)
+      }))
+    default: []
+  - name: custom_fc_rules
+    type: |
+      list(object({
+        rule_name                       = string
+        description                     = string
+        source_arn                      = string
+        input_parameters                = optional(map(string), {})
+        maximum_execution_frequency     = optional(string, "TwentyFour_Hours")
+        scope_compliance_resource_types = optional(list(string), [])
+        risk_level                      = optional(number, 1)
+        trigger_types                   = optional(string, "ConfigurationItemChangeNotification")
+        tag_key_scope                   = optional(string)
+        tag_value_scope                 = optional(string)
+        region_ids_scope                = optional(string)
+        exclude_resource_ids_scope      = optional(string)
+        resource_group_ids_scope        = optional(list(string), [])
+        add_to_compliance_pack          = optional(bool, true)
+      }))
+    default: []
+  - name: control_policies
+    type: |
+      list(object({
+        name            = string
+        description     = string
+        policy_document = string
+        target_ids      = list(string)
+        attach_to_root  = bool
+      }))
+    default: []
+
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.253.0"
+
+provider:
+  - type: alicloud
+    name: master
+    config:
+      region: var.region
+  - type: alicloud
+    name: security
+    config:
+      region: var.region
+      assume_role:
+        role_arn: "acs:ram::${var.security_account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+
+component:
+  - name: detective
+    source: "../../components/guardrails/detective"
+    inputs:
+      aggregator_name: var.aggregator_name
+      enable_compliance_pack: var.enable_compliance_pack
+      compliance_pack_name: var.compliance_pack_name
+      risk_level: var.risk_level
+      template_based_rules: var.template_based_rules
+      custom_fc_rules: var.custom_fc_rules
+    providers:
+      alicloud: provider.alicloud.security
+  - name: preventive
+    source: "../../components/guardrails/preventive"
+    inputs:
+      control_policies: var.control_policies
+    providers:
+      alicloud: provider.alicloud.master
+
+output:
+  - name: aggregator_id
+    type: string
+    description: "The ID of the config aggregator"
+    value: component.detective.aggregator_id
+  - name: compliance_pack_id
+    type: string
+    description: "The ID of the compliance pack"
+    value: component.detective.compliance_pack_id
+  - name: rule_ids
+    type: any
+    description: "The IDs of all created config rules"
+    value: component.detective.rule_ids
+  - name: template_rule_count
+    type: number
+    description: "Number of template-based rules created"
+    value: component.detective.template_rule_count
+  - name: custom_fc_rule_count
+    type: number
+    description: "Number of custom FC rules created"
+    value: component.detective.custom_fc_rule_count
+  - name: policy_ids
+    type: any
+    description: "The IDs of the created control policies"
+    value: component.preventive.policy_ids
+  - name: attachment_ids
+    type: any
+    description: "The IDs of all policy attachments"
+    value: component.preventive.attachment_ids

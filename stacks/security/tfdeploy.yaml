@@ -1,0 +1,127 @@
+format_version: IaCService/2021-08-06
+description: 安全模块部署
+
+upstream_input:
+  - name: resource_structure_stack
+    type: stack
+    source: "iac.aliyuncs.com/1857855749528871/resource-structure-new"
+
+deployment:
+  - name: security
+    inputs:
+      # 安全账号ID，从resource_structure_stack获取
+      security_account_id: "{{ upstream_input.resource_structure_stack.role_to_account_mapping.security }}"
+      
+      # Bastion Host 配置
+      create_bastion_host: false
+      bastion_host_description: "Landing Zone Bastion Host"
+      bastion_host_license_code: "bhah_ent_50_asset"
+      bastion_host_plan_code: "cloudbastion"
+      bastion_host_storage: "5"
+      bastion_host_bandwidth: "5"
+      bastion_host_period: 1
+      create_vpc_resources: true
+      vpc_cidr: "192.168.0.0/16"
+      vswitch_cidr: "192.168.1.0/24"
+      availability_zone: ""
+      vpc_name: "landingzone-bastion-vpc"
+      vpc_description: "VPC for Landing Zone Bastion Host"
+      vswitch_name: "landingzone-bastion-vswitch"
+      vswitch_description: "VSwitch for Landing Zone Bastion Host"
+      security_group_name: "landingzone-bastion-sg"
+      security_group_description: "Security group for Landing Zone Bastion Host"
+      bastion_host_role_name: "AliyunServiceRoleForBastionhost"
+      bastion_host_instance_name: "landingzone-bastion-host"
+      bastion_host_tags:
+        Environment: "landingzone"
+        Project: "terraform-alicloud-landing-zone-accelerator"
+        ManagedBy: "terraform"
+      
+      # Cloud Firewall 配置
+      create_cloud_firewall_instance: true
+      cloud_firewall_instance_name: "landingzone-central-firewall"
+      cloud_firewall_instance_type: "premium"
+      cloud_firewall_bandwidth: 100
+      member_account_ids: []
+      cloud_firewall_tags:
+        Environment: "landingzone"
+        Project: "terraform-alicloud-landing-zone-accelerator"
+        ManagedBy: "terraform"
+      cloud_firewall_payment_type: "PayAsYouGo"
+      
+      # KMS 配置
+      create_kms_instance: true
+      kms_instance_name: "landingzone-kms"
+      kms_password: ""
+      kms_tags:
+        Environment: "landingzone"
+        Project: "terraform-alicloud-landing-zone-accelerator"
+        ManagedBy: "terraform"
+      kms_protection_level: "SOFTWARE"
+      kms_edition: "Basic"
+      kms_kms_spec: "CMK_SPEC_ASN1"
+      kms_description: "KMS instance for Landing Zone"
+      kms_automatic_rotation: "Enabled"
+      kms_rotation_interval: "P1Y"
+      kms_key_tags: []
+      
+      # SLS 配置
+      create_sls_project: true
+      sls_project_name: "landingzone-security-logs"
+      sls_project_description: "Security logs project for Landing Zone"
+      sls_project_tags:
+        Environment: "landingzone"
+        Project: "terraform-alicloud-landing-zone-accelerator"
+        ManagedBy: "terraform"
+      create_sls_logstores: true
+      sls_logstores:
+        - name: "actiontrail"
+          shard_count: 2
+          ttl: 180
+        - name: "cloud-config"
+          shard_count: 2
+          ttl: 180
+      sls_alerts:
+        - name: "actiontrail-alert"
+          display_name: "ActionTrail Alert"
+          description: "ActionTrail alert for security events"
+          type: "actiontrail"
+          severity: "critical"
+        - name: "config-alert"
+          display_name: "Config Alert"
+          description: "Config alert for configuration changes"
+          type: "config"
+          severity: "high"
+
+publish_output:
+  # Bastion Host outputs
+  - name: bastion_host_instance_id
+    description: "The ID of the Bastion Host instance"
+    value: deployment.security.bastion_host_instance_id
+  - name: bastion_host_vpc_id
+    description: "The ID of the VPC for Bastion Host"
+    value: deployment.security.bastion_host_vpc_id
+  - name: bastion_host_vswitch_id
+    description: "The ID of the VSwitch for Bastion Host"
+    value: deployment.security.bastion_host_vswitch_id
+  - name: bastion_host_security_group_id
+    description: "The ID of the Security Group for Bastion Host"
+    value: deployment.security.bastion_host_security_group_id
+  
+  # Cloud Firewall outputs
+  - name: cloud_firewall_instance_id
+    description: "The ID of the Cloud Firewall instance"
+    value: deployment.security.cloud_firewall_instance_id
+  
+  # KMS outputs
+  - name: kms_instance_id
+    description: "The ID of the KMS instance"
+    value: deployment.security.kms_instance_id
+  
+  # SLS outputs
+  - name: sls_project_name
+    description: "The name of the SLS project"
+    value: deployment.security.sls_project_name
+  - name: sls_project_id
+    description: "The ID of the SLS project"
+    value: deployment.security.sls_project_id

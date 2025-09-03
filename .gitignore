@@ -1,0 +1,33 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+*.tfvars.json
+!.runtime/**/*.tfvars.json
+
+# IDE files
+.cursorignore
+.vscode/
+.vscode
+.idea/
+
+# Environment files
+.env
+# .runtime
+provider.tf
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Sensitive files
+terraform.tfvars
+secrets.tf

@@ -1,0 +1,53 @@
+format_version: IaCService/2021-08-06
+description: 创建成员账号
+
+variable:
+  - name: region
+    type: string
+  - name: account_name_prefix
+    type: string
+  - name: display_name
+    type: string
+    default: "null"
+  - name: parent_folder_id
+    type: string
+    default: "null"
+  - name: billing_type
+    type: string
+    default: "Trusteeship"
+  - name: billing_account_id
+    type: string
+    default: "null"
+  - name: tags
+    type: map(string)
+    default: "null"
+
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.253.0"
+
+provider:
+  - type: alicloud
+    name: this
+    config:
+      region: var.region
+
+component:
+  - name: account_factory_account
+    source: "../../../components/account-factory/account"
+    inputs:
+      account_name_prefix: var.account_name_prefix
+      display_name: var.display_name
+      parent_folder_id: var.parent_folder_id
+      billing_type: var.billing_type
+      billing_account_id: var.billing_account_id
+      tags: var.tags
+    providers:
+      alicloud: provider.alicloud.this
+
+output:
+  - name: account_id
+    type: string
+    description: "The ID of the created member account"
+    value: component.account_factory_account.account_id

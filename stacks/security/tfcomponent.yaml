@@ -1,0 +1,301 @@
+format_version: IaCService/2021-08-06
+description: 安全模块搭建 
+
+variable:
+  # 安全账号ID
+  - name: security_account_id
+    type: string
+  
+  # Bastion Host variables
+  - name: create_bastion_host
+    type: bool
+    default: false
+  - name: bastion_host_description
+    type: string
+    default: ""
+  - name: bastion_host_license_code
+    type: string
+    default: "bhah_ent_50_asset"
+  - name: bastion_host_plan_code
+    type: string
+    default: "cloudbastion"
+  - name: bastion_host_storage
+    type: string
+    default: "5"
+  - name: bastion_host_bandwidth
+    type: string
+    default: "5"
+  - name: bastion_host_period
+    type: number
+    default: 1
+  - name: bastion_host_vswitch_id
+    type: string
+    default: ""
+  - name: bastion_host_security_group_ids
+    type: list(string)
+    default: []
+  - name: create_vpc_resources
+    type: bool
+    default: false
+  - name: vpc_cidr
+    type: string
+    default: "192.168.0.0/16"
+  - name: vswitch_cidr
+    type: string
+    default: "192.168.1.0/24"
+  - name: availability_zone
+    type: string
+    default: ""
+  - name: vpc_name
+    type: string
+    default: "bastion-host-vpc"
+  - name: vpc_description
+    type: string
+    default: "VPC for Bastion Host"
+  - name: vswitch_name
+    type: string
+    default: "bastion-host-vswitch"
+  - name: vswitch_description
+    type: string
+    default: "VSwitch for Bastion Host"
+  - name: security_group_name
+    type: string
+    default: "bastion-host-sg"
+  - name: security_group_description
+    type: string
+    default: "Security group for Bastion Host"
+  - name: bastion_host_role_name
+    type: string
+    default: "AliyunServiceRoleForBastionhost"
+  - name: bastion_host_instance_name
+    type: string
+    default: "bastion-host"
+  - name: bastion_host_tags
+    type: map(string)
+    default: {}
+  
+  # Cloud Firewall variables
+  - name: create_cloud_firewall_instance
+    type: bool
+    default: true
+  - name: cloud_firewall_instance_name
+    type: string
+    default: "central-firewall"
+  - name: cloud_firewall_instance_type
+    type: string
+    default: "premium"
+  - name: cloud_firewall_bandwidth
+    type: number
+    default: 100
+  - name: member_account_ids
+    type: list(string)
+    default: []
+  - name: cloud_firewall_tags
+    type: map(string)
+    default: {}
+  - name: cloud_firewall_payment_type
+    type: string
+    default: "PayAsYouGo"
+  
+  # KMS variables
+  - name: create_kms_instance
+    type: bool
+    default: true
+  - name: kms_instance_name
+    type: string
+    default: "landingzone-kms"
+  - name: kms_password
+    type: string
+    default: ""
+  - name: kms_tags
+    type: map(string)
+    default: {}
+  - name: kms_protection_level
+    type: string
+    default: "SOFTWARE"
+  - name: kms_edition
+    type: string
+    default: "Basic"
+  - name: kms_kms_spec
+    type: string
+    default: "CMK_SPEC_ASN1"
+  - name: kms_description
+    type: string
+    default: "KMS instance for Landing Zone"
+  - name: kms_automatic_rotation
+    type: string
+    default: "Enabled"
+  - name: kms_rotation_interval
+    type: string
+    default: "P1Y"
+  - name: kms_key_tags
+    type: "list(object({ tag_key = string, tag_value = string }))"
+    default: []
+  
+  # SLS variables
+  - name: create_sls_project
+    type: bool
+    default: true
+  - name: sls_project_name
+    type: string
+    default: "landingzone-security-logs"
+  - name: sls_project_description
+    type: string
+    default: "Security logs project for Landing Zone"
+  - name: sls_project_tags
+    type: map(string)
+    default: {}
+  - name: create_sls_logstores
+    type: bool
+    default: true
+  - name: sls_logstores
+    type: "list(object({ name = string, shard_count = number, ttl = number }))"
+    default: |
+      [
+        {
+          name        = "actiontrail"
+          shard_count = 2
+          ttl         = 180
+        },
+        {
+          name        = "cloud-config"
+          shard_count = 2
+          ttl         = 180
+        }
+      ]
+  - name: sls_alerts
+    type: "list(object({ name = string, display_name = string, description = string, type = string, severity = string }))"
+    default: |
+      [
+        {
+          name         = "actiontrail-alert"
+          display_name = "ActionTrail Alert"
+          description  = "ActionTrail alert for security events"
+          type         = "actiontrail"
+          severity     = "critical"
+        },
+        {
+          name         = "config-alert"
+          display_name = "Config Alert"
+          description  = "Config alert for configuration changes"
+          type         = "config"
+          severity     = "high"
+        }
+      ]
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.253.0"
+
+provider:
+  - type: alicloud
+    name: security
+    config:
+      region: "cn-hangzhou"
+      assume_role:
+        role_arn: "acs:ram::${var.security_account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+
+component:
+  - name: security
+    source: "../../components/security"
+    inputs:
+      # Bastion Host inputs
+      create_bastion_host: var.create_bastion_host
+      bastion_host_description: var.bastion_host_description
+      bastion_host_license_code: var.bastion_host_license_code
+      bastion_host_plan_code: var.bastion_host_plan_code
+      bastion_host_storage: var.bastion_host_storage
+      bastion_host_bandwidth: var.bastion_host_bandwidth
+      bastion_host_period: var.bastion_host_period
+      bastion_host_vswitch_id: var.bastion_host_vswitch_id
+      bastion_host_security_group_ids: var.bastion_host_security_group_ids
+      create_vpc_resources: var.create_vpc_resources
+      vpc_cidr: var.vpc_cidr
+      vswitch_cidr: var.vswitch_cidr
+      availability_zone: var.availability_zone
+      vpc_name: var.vpc_name
+      vpc_description: var.vpc_description
+      vswitch_name: var.vswitch_name
+      vswitch_description: var.vswitch_description
+      security_group_name: var.security_group_name
+      security_group_description: var.security_group_description
+      bastion_host_role_name: var.bastion_host_role_name
+      bastion_host_instance_name: var.bastion_host_instance_name
+      bastion_host_tags: var.bastion_host_tags
+      
+      # Cloud Firewall inputs
+      create_cloud_firewall_instance: var.create_cloud_firewall_instance
+      cloud_firewall_instance_name: var.cloud_firewall_instance_name
+      cloud_firewall_instance_type: var.cloud_firewall_instance_type
+      cloud_firewall_bandwidth: var.cloud_firewall_bandwidth
+      member_account_ids: var.member_account_ids
+      cloud_firewall_tags: var.cloud_firewall_tags
+      cloud_firewall_payment_type: var.cloud_firewall_payment_type
+      
+      # KMS inputs
+      create_kms_instance: var.create_kms_instance
+      kms_instance_name: var.kms_instance_name
+      kms_password: var.kms_password
+      kms_tags: var.kms_tags
+      kms_protection_level: var.kms_protection_level
+      kms_edition: var.kms_edition
+      kms_kms_spec: var.kms_kms_spec
+      kms_description: var.kms_description
+      kms_automatic_rotation: var.kms_automatic_rotation
+      kms_rotation_interval: var.kms_rotation_interval
+      kms_key_tags: var.kms_key_tags
+      
+      # SLS inputs
+      create_sls_project: var.create_sls_project
+      sls_project_name: var.sls_project_name
+      sls_project_description: var.sls_project_description
+      sls_project_tags: var.sls_project_tags
+      create_sls_logstores: var.create_sls_logstores
+      sls_logstores: var.sls_logstores
+      sls_alerts: var.sls_alerts
+    
+    providers:
+      alicloud: provider.alicloud.security
+
+output:
+  # Bastion Host outputs
+  - name: bastion_host_instance_id
+    type: string
+    description: "The ID of the Bastion Host instance"
+    value: component.security.bastion_host_instance_id
+  - name: bastion_host_vpc_id
+    type: string
+    description: "The ID of the VPC for Bastion Host"
+    value: component.security.bastion_host_vpc_id
+  - name: bastion_host_vswitch_id
+    type: string
+    description: "The ID of the VSwitch for Bastion Host"
+    value: component.security.bastion_host_vswitch_id
+  - name: bastion_host_security_group_id
+    type: string
+    description: "The ID of the Security Group for Bastion Host"
+    value: component.security.bastion_host_security_group_id
+  
+  # Cloud Firewall outputs
+  - name: cloud_firewall_instance_id
+    type: string
+    description: "The ID of the Cloud Firewall instance"
+    value: component.security.cloud_firewall_instance_id
+  
+  # KMS outputs
+  - name: kms_instance_id
+    type: string
+    description: "The ID of the KMS instance"
+    value: component.security.kms_instance_id
+  
+  # SLS outputs
+  - name: sls_project_name
+    type: string
+    description: "The name of the SLS project"
+    value: component.security.sls_project_name
+  - name: sls_project_id
+    type: string
+    description: "The ID of the SLS project"
+    value: component.security.sls_project_id

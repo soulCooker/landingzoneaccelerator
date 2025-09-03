@@ -1,0 +1,300 @@
+format_version: IaCService/2021-08-06
+description: 账号基线配置
+
+variable:
+  - name: region
+    type: string
+  - name: account_id
+    type: string
+  - name: preset_tags
+    type: |
+      list(object({
+        key    = string
+        values = list(string)
+      }))
+    default: []
+  - name: contact
+    type: |
+      object({
+        contacts                    = list(object({
+          name     = string
+          email    = string
+          mobile   = optional(string, "0000")
+          position = string
+        }))
+        notification_recipient_mode = string
+      })
+    default:
+      contacts: []
+      notification_recipient_mode: "append"
+  - name: ram_security_preference
+    type: |
+      object({
+        allow_user_to_change_password           = optional(bool, true)
+        allow_user_to_login_with_passkey        = optional(bool, true)
+        allow_user_to_manage_access_keys        = optional(bool, false)
+        allow_user_to_manage_mfa_devices        = optional(bool, true)
+        allow_user_to_manage_personal_ding_talk = optional(bool, true)
+        enable_save_mfa_ticket                  = optional(bool, true)
+        login_session_duration                  = optional(number, 6)
+        login_network_masks                     = optional(list(string), [])
+        mfa_operation_for_login                 = optional(string, "independent")
+        operation_for_risk_login                = optional(string, "autonomous")
+        verification_types                      = optional(set(string), [])
+        password_policy = optional(object({
+          minimum_password_length              = optional(number)
+          require_lowercase_characters         = optional(bool)
+          require_numbers                      = optional(bool)
+          require_uppercase_characters         = optional(bool)
+          require_symbols                      = optional(bool)
+          max_password_age                     = optional(number)
+          password_reuse_prevention            = optional(number)
+          max_login_attempts                   = optional(number)
+          hard_expiry                          = optional(bool)
+          password_not_contain_user_name       = optional(bool)
+          minimum_password_different_character = optional(number)
+        }), null)
+      })
+    default: {}
+  - name: ram_roles
+    type: |
+      list(object({
+        role_name                   = optional(string)
+        role_description            = optional(string)
+        force                       = optional(bool, true)
+        max_session_duration        = optional(number, 3600)
+        role_requires_mfa           = optional(bool, true)
+        trusted_principal_arns      = optional(list(string), [])
+        trusted_services            = optional(list(string), [])
+        trust_policy                = optional(string)
+        managed_system_policy_names = optional(list(string), [])
+        attach_admin_policy         = optional(bool, false)
+        attach_readonly_policy      = optional(bool, false)
+        inline_custom_policies          = optional(list(object({
+          policy_name     = string
+          policy_document = string
+          description     = optional(string)
+          force           = optional(bool, true)
+        })), [])
+      }))
+    default:  []
+  - name: vpc
+    type: |
+      object({
+        region           = string
+        vpc_name          = optional(string)
+        vpc_cidr          = optional(string)
+        vpc_description   = optional(string)
+        enable_ipv6       = optional(bool, false)
+        ipv6_isp          = optional(string, "BGP")
+        resource_group_id = optional(string)
+        user_cidrs        = optional(list(string))
+        ipv4_cidr_mask    = optional(number)
+        ipv4_ipam_pool_id = optional(string)
+        ipv6_cidr_block   = optional(string)
+        vpc_tags          = optional(map(string), {})
+        vswitches = optional(list(object({
+          cidr_block           = string
+          zone_id              = string
+          vswitch_name         = optional(string)
+          description          = optional(string)
+          enable_ipv6          = optional(bool)
+          ipv6_cidr_block_mask = optional(number)
+          tags                 = optional(map(string))
+        })), [])
+        enable_acl      = optional(bool, false)
+        acl_name        = optional(string)
+        acl_description = optional(string)
+        acl_tags        = optional(map(string), {})
+        ingress_acl_entries = optional(list(object({
+          protocol               = string
+          port                   = string
+          source_cidr_ip         = string
+          policy                 = optional(string, "accept")
+          description            = optional(string)
+          network_acl_entry_name = optional(string)
+          ip_version             = optional(string, "IPV4")
+        })), [])
+        egress_acl_entries = optional(list(object({
+          protocol               = string
+          port                   = string
+          destination_cidr_ip    = string
+          policy                 = optional(string, "accept")
+          description            = optional(string)
+          network_acl_entry_name = optional(string)
+          ip_version             = optional(string, "IPV4")
+        })), [])
+      })
+    default:
+      region: "cn-hangzhou"
+      vswitches: []
+  - name: private_zone
+    type: |
+      object({
+        zone_name         = optional(string)
+        zone_remark       = optional(string)
+        proxy_pattern     = optional(string, "ZONE")
+        lang              = optional(string, "en")
+        resource_group_id = optional(string, "")
+        tags              = optional(map(string), {})
+        record_entries = optional(list(object({
+          name     = string
+          type     = string
+          value    = string
+          ttl      = optional(number, 60)
+          lang     = optional(string, "en")
+          priority = optional(number, 1)
+          remark   = optional(string, "")
+          status   = optional(string, "ENABLE")
+        })), [])
+      })
+    default:
+      vpc_bindings: []
+      record_entries: []
+      tags: {}
+      proxy_pattern: "ZONE"
+      lang: "en"
+      resource_group_id: ""
+
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.253.0"
+
+provider:
+  - type: alicloud
+    name: default
+    config:
+      region: var.region
+      assume_role:
+        role_arn: "acs:ram::${var.account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+  - type: alicloud
+    name: vpc
+    config:
+      region: var.vpc.region
+      assume_role:
+        role_arn: "acs:ram::${var.account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+
+component:
+  - name: preset_tags
+    source: "../../../modules/preset-tag"
+    inputs:
+      preset_tags: var.preset_tags
+    providers:
+      alicloud: provider.alicloud.default
+  - name: contact
+    source: "../../../modules/contact"
+    inputs:
+      contacts: var.contact.contacts
+      notification_recipient_mode: var.contact.notification_recipient_mode
+    providers:
+      alicloud: provider.alicloud.default
+  - name: ram_security_preference
+    source: "../../../modules/ram-security-preference"
+    inputs:
+      allow_user_to_change_password: var.ram_security_preference.allow_user_to_change_password
+      allow_user_to_login_with_passkey: var.ram_security_preference.allow_user_to_login_with_passkey
+      allow_user_to_manage_access_keys: var.ram_security_preference.allow_user_to_manage_access_keys
+      allow_user_to_manage_mfa_devices: var.ram_security_preference.allow_user_to_manage_mfa_devices
+      allow_user_to_manage_personal_ding_talk: var.ram_security_preference.allow_user_to_manage_personal_ding_talk
+      enable_save_mfa_ticket: var.ram_security_preference.enable_save_mfa_ticket
+      login_session_duration: var.ram_security_preference.login_session_duration
+      login_network_masks: var.ram_security_preference.login_network_masks
+      mfa_operation_for_login: var.ram_security_preference.mfa_operation_for_login
+      operation_for_risk_login: var.ram_security_preference.operation_for_risk_login
+      verification_types: var.ram_security_preference.verification_types
+      password_policy: var.ram_security_preference.password_policy
+    providers:
+      alicloud: provider.alicloud.default
+  - name: ram_roles
+    source: "../../../modules/ram-role"
+    for_each: |
+      {
+        for role in var.ram_roles: role.role_name => role
+      }
+    inputs:
+      role_name: each.value.role_name
+      role_description: each.value.role_description
+      force: each.value.force
+      max_session_duration: each.value.max_session_duration
+      role_requires_mfa: each.value.role_requires_mfa
+      trusted_principal_arns: each.value.trusted_principal_arns
+      trusted_services: each.value.trusted_services
+      trust_policy: each.value.trust_policy
+      managed_system_policy_names: each.value.managed_system_policy_names
+      attach_admin_policy: each.value.attach_admin_policy
+      attach_readonly_policy: each.value.attach_readonly_policy
+      inline_custom_policies: each.value.inline_custom_policies
+    providers:
+      alicloud: provider.alicloud.default
+  - name: vpc
+    source: "../../../modules/vpc"
+    inputs:
+      vpc_name: var.vpc.vpc_name
+      vpc_cidr: var.vpc.vpc_cidr
+      vpc_description: var.vpc.vpc_description
+      enable_ipv6: var.vpc.enable_ipv6
+      ipv6_isp: var.vpc.ipv6_isp
+      resource_group_id: var.vpc.resource_group_id
+      user_cidrs: var.vpc.user_cidrs
+      ipv4_cidr_mask: var.vpc.ipv4_cidr_mask
+      ipv4_ipam_pool_id: var.vpc.ipv4_ipam_pool_id
+      ipv6_cidr_block: var.vpc.ipv6_cidr_block
+      vpc_tags: var.vpc.vpc_tags
+      vswitches: var.vpc.vswitches
+      enable_acl: var.vpc.enable_acl
+      acl_name: var.vpc.acl_name
+      acl_description: var.vpc.acl_description
+      acl_tags: var.vpc.acl_tags
+      ingress_acl_entries: var.vpc.ingress_acl_entries
+      egress_acl_entries: var.vpc.egress_acl_entries
+    providers:
+      alicloud: provider.alicloud.vpc
+  - name: private_zone
+    source: "../../../modules/private-zone"
+    inputs:
+      zone_name: var.private_zone.zone_name
+      zone_remark: var.private_zone.zone_remark
+      proxy_pattern: var.private_zone.proxy_pattern
+      lang: var.private_zone.lang
+      resource_group_id: var.private_zone.resource_group_id
+      tags: var.private_zone.tags
+      vpc_bindings: 
+        - vpc_id: component.vpc.vpc_id
+      record_entries: var.private_zone.record_entries
+    providers:
+      alicloud: provider.alicloud.vpc
+    depends_on:
+      - component.vpc
+
+output:
+  - name: preset_tags
+    type: any
+    description: "Preset tag module output"
+    value: component.preset_tags
+  - name: contact
+    type: any
+    description: "Contact module output"
+    value: component.contact
+  - name: ram_security_preference
+    type: any
+    description: "RAM security preference module output"
+    value: component.ram_security_preference
+  - name: ram_roles
+    type: any
+    description: "RAM role module output"
+    value: component.ram_roles
+  - name: vpc
+    type: any
+    description: "VPC module output"
+    value: component.vpc
+  - name: private_zone
+    type: any
+    description: "Private Zone module output"
+    value: component.private_zone
+
+

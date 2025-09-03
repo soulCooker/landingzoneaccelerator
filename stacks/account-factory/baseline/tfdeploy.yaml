@@ -1,0 +1,158 @@
+format_version: IaCService/2021-08-06
+description: 实施基线
+
+upstream_input:
+  - name: account_stack
+    type: stack
+    source: "{IaCEndpoint}/{AccountId}/account"
+
+deployment:
+  - name: baseline
+    inputs:
+      region: "cn-hangzhou"
+      account_id: upstream_input.account_stack.account_id
+      preset_tags:
+        - key: "environment"
+          values: ["dev", "test", "prod"]
+        - key: "project"
+          values: ["project1", "project2"]
+      contact:
+        contacts:
+          - name: "张三"
+            email: "zhangsan@example.com"
+            mobile: "13800000000"
+            position: "Technical Director"
+          - name: "李四"
+            email: "lisi@example.com"
+            mobile: "13900000000"
+            position: "Maintenance Director"
+        notification_recipient_mode: "append"
+      ram_roles:
+        - role_name: "tf-landing-zone-accelerator-01"
+          trusted_principal_arns: ["acs:ram::1849504696059831:root"]
+          managed_system_policy_names: ["AliyunECSFullAccess"]
+          inline_custom_policies:
+            - policy_name: "tf-landing-zone-accelerator-test-01"
+              policy_document: '{"Version":"1","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'
+            - policy_name: "tf-landing-zone-accelerator-test-02"
+              policy_document: '{"Version":"1","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'
+        - role_name: "tf-landing-zone-accelerator-02"
+          trusted_principal_arns: ["acs:ram::1849504696059831:root"]
+          managed_system_policy_names: ["AliyunOSSFullAccess"]
+      ram_security_preference:
+        allow_user_to_change_password: true
+        allow_user_to_login_with_passkey: true
+        allow_user_to_manage_access_keys: false
+        allow_user_to_manage_mfa_devices: true
+        allow_user_to_manage_personal_ding_talk: true
+        enable_save_mfa_ticket: true
+        login_session_duration: 12
+        login_network_masks: []
+        mfa_operation_for_login: "independent"
+        operation_for_risk_login: "autonomous"
+        verification_types: []
+        password_policy:
+          minimum_password_length: 10
+          require_lowercase_characters: true
+          require_numbers: true
+          require_uppercase_characters: true
+          require_symbols: false
+          max_password_age: 90
+          password_reuse_prevention: 3
+          max_login_attempts: 5
+          hard_expiry: false
+          password_not_contain_user_name: false
+          minimum_password_different_character: 0
+      vpc:
+        region: "cn-shanghai"
+        vpc_name: "example-vpc"
+        vpc_cidr: "192.168.0.0/27"
+        vpc_description: "Example VPC for testing."
+        vpc_tags:
+          env: "test"
+          project: "demo"
+        enable_ipv6: false
+        ipv6_isp: "BGP"
+        resource_group_id: null
+        user_cidrs: ["30.0.0.0/8"]
+        ipv4_cidr_mask: 27
+        ipv4_ipam_pool_id: null
+        ipv6_cidr_block: null
+        vswitches:
+          - vswitch_name: "example-vswitch-1"
+            cidr_block: "192.168.0.0/28"
+            zone_id: "cn-shanghai-f"
+            description: "Test vswitch 1"
+            enable_ipv6: false
+            ipv6_cidr_block_mask: null
+            tags:
+              env: "test"
+          - vswitch_name: "example-vswitch-2"
+            cidr_block: "192.168.0.16/28"
+            zone_id: "cn-shanghai-g"
+        enable_acl: true
+        acl_name: "example-acl"
+        acl_description: "Example ACL for testing."
+        acl_tags:
+          env: "test"
+        ingress_acl_entries:
+          - protocol: "tcp"
+            port: "80/80"
+            source_cidr_ip: "0.0.0.0/0"
+            policy: "accept"
+            description: "Allow HTTP"
+            network_acl_entry_name: "allow-http"
+            ip_version: "IPV4"
+        egress_acl_entries:
+          - protocol: "all"
+            port: "-1/-1"
+            destination_cidr_ip: "0.0.0.0/0"
+            policy: "accept"
+            description: "Allow all outbound"
+            network_acl_entry_name: "allow-all-egress"
+            ip_version: "IPV4"
+      private_zone:
+        zone_name: "example.com"
+        zone_remark: "PrivateZone_testenv01-2024.06.01"
+        proxy_pattern: "ZONE"
+        lang: "en"
+        resource_group_id: null
+        tags:
+          env: "test"
+          project: "landing-zone"
+        record_entries:
+          - name: "www"
+            type: "A"
+            value: "192.168.0.1"
+            ttl: 60
+            lang: "en"
+            remark: "TestA_record"
+            status: "ENABLE"
+          - name: "mail"
+            type: "MX"
+            value: "mail.example.com"
+            ttl: 60
+            lang: "en"
+            priority: 10
+            remark: "TestMX_record"
+            status: "ENABLE"
+
+publish_output:
+  - name: preset_tags
+    description: "Preset tag module output"
+    value: deployment.baseline.preset_tags
+  - name: contact
+    description: "Contact module output"
+    value: deployment.baseline.contact
+  - name: ram_roles
+    description: "RAM role module output"
+    value: deployment.baseline.ram_roles
+  - name: ram_security_preference
+    description: "RAM security preference module output"
+    value: deployment.baseline.ram_security_preference
+  - name: vpc
+    description: "VPC module output"
+    value: deployment.baseline.vpc
+  - name: private_zone
+    description: "Private Zone module output"
+    value: deployment.baseline.private_zone

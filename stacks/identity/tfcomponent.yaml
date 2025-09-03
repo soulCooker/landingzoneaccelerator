@@ -1,0 +1,76 @@
+format_version: IaCService/2021-08-06
+description: 身份管理搭建
+
+variable:
+  - name: region
+    type: string
+  - name: iam_account_id
+    type: string
+  - name: directory_name
+    type: string
+    default: "null"
+  - name: enable_default_access_configurations
+    type: bool
+    default: true
+  - name: access_configurations
+    type: |
+      list(object({
+        name                        = string
+        description                 = optional(string)
+        relay_state                 = optional(string, "https://home.console.aliyun.com/")
+        session_duration            = optional(number, 3600)
+        managed_system_policies     = optional(list(string), [])
+        inline_custom_policy = optional(object({
+          policy_name     = string
+          policy_document = string
+        }), null)
+      }))
+    default: []
+
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.253.0"
+
+provider:
+  - type: alicloud
+    name: master
+    config:
+      region: var.region
+  - type: alicloud
+    name: iam
+    config:
+      region: var.region
+      assume_role:
+        role_arn: "acs:ram::${var.iam_account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+
+component:
+  - name: cloudsso
+    source: "../../components/identity/cloudsso"
+    inputs:
+      directory_name: var.directory_name
+      enable_default_access_configurations: var.enable_default_access_configurations
+      access_configurations: var.access_configurations
+    providers:
+      alicloud.master: provider.alicloud.master
+      alicloud.iam: provider.alicloud.iam
+
+output:
+  - name: directory_id
+    type: string
+    description: "The ID of the CloudSSO directory"
+    value: component.cloudsso.directory_id
+  - name: directory_name
+    type: string
+    description: "The name of the CloudSSO directory"
+    value: component.cloudsso.directory_name
+  - name: default_access_configuration_ids
+    type: any
+    description: "The IDs of the default access configurations"
+    value: component.cloudsso.default_access_configuration_ids
+  - name: custom_access_configuration_ids
+    type: any
+    description: "The IDs of the custom access configurations"
+    value: component.cloudsso.custom_access_configuration_ids

@@ -1,0 +1,80 @@
+format_version: IaCService/2021-08-06
+description: 防护规则实施 
+
+upstream_input:
+  - name: resource_structure_stack
+    type: stack
+    source: "iac.aliyuncs.com/1857855749528871/resource-structure-new"
+
+deployment:
+  - name: guardrails
+    inputs:
+      region: "cn-hangzhou"
+      security_account_id: "{{ upstream_input.resource_structure_stack.role_to_account_mapping.security }}"
+      aggregator_name: "LandingZoneConfigAggregator"
+      enable_compliance_pack: true
+      compliance_pack_name: "LandingZoneCompliancePack"
+      risk_level: 1
+      template_based_rules:
+        - rule_name: "ECSInstanceNoPublicIP"
+          description: "Ensure ECS instances do not have public IP addresses"
+          source_template_id: "ecs-instance-no-public-ip"
+          maximum_execution_frequency: "One_Hour"
+          scope_compliance_resource_types: ["ACS::ECS::Instance"]
+          add_to_compliance_pack: true
+        - rule_name: "OSSBucketPublicReadProhibited"
+          description: "Ensure OSS buckets do not allow public read"
+          source_template_id: "oss-bucket-public-read-prohibited"
+          maximum_execution_frequency: "Six_Hours"
+          scope_compliance_resource_types: ["ACS::OSS::Bucket"]
+          risk_level: 2
+          trigger_types: "ScheduledNotification"
+          add_to_compliance_pack: true
+        - rule_name: "ActionTrailEnabled"
+          description: "Ensure ActionTrail is enabled for audit logging"
+          source_template_id: "actiontrail-enabled"
+          scope_compliance_resource_types: ["ACS::ActionTrail::Trail"]
+          trigger_types: "ScheduledNotification"
+          add_to_compliance_pack: false
+        - rule_name: "OSSBucketVersioningEnabled"
+          description: "Ensure OSS bucket versioning is enabled"
+          source_template_id: "oss-bucket-versioning-enabled"
+          scope_compliance_resource_types: ["ACS::OSS::Bucket"]
+          trigger_types: "ScheduledNotification"
+          risk_level: 2
+          add_to_compliance_pack: false
+      custom_fc_rules: []
+      control_policies:
+        - name: "DenyDeleteRolePolicy"
+          policy_document: '{"Version":"1","Statement":[{"Effect":"Deny","Action":["ram:DeleteRole","ram:DeletePolicy"],"Resource":"*"}]}'
+          description: "Deny deletion of RAM roles and policies"
+          target_ids: ["fd-CbIBNibCvc"]
+          attach_to_root: false
+        - name: "RootLevelSecurityPolicy"
+          policy_document: '{"Version":"1","Statement":[{"Effect":"Deny","Action":["ecs:DeleteInstance"],"Resource":"*"}]}'
+          description: "Security policy applied at root level"
+          target_ids: []
+          attach_to_root: true
+
+publish_output:
+  - name: aggregator_id
+    description: "The ID of the config aggregator"
+    value: deployment.guardrails.aggregator_id
+  - name: compliance_pack_id
+    description: "The ID of the compliance pack"
+    value: deployment.guardrails.compliance_pack_id
+  - name: rule_ids
+    description: "The IDs of all created config rules"
+    value: deployment.guardrails.rule_ids
+  - name: template_rule_count
+    description: "Number of template-based rules created"
+    value: deployment.guardrails.template_rule_count
+  - name: custom_fc_rule_count
+    description: "Number of custom FC rules created"
+    value: deployment.guardrails.custom_fc_rule_count
+  - name: policy_ids
+    description: "The IDs of the created control policies"
+    value: deployment.guardrails.policy_ids
+  - name: attachment_ids
+    description: "The IDs of all policy attachments"
+    value: deployment.guardrails.attachment_ids

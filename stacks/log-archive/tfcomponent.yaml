@@ -1,0 +1,299 @@
+format_version: IaCService/2021-08-06
+description: 日志归档搭建
+
+variable:
+  - name: config_region
+    type: string
+  - name: actiontrail_region
+    type: string
+  - name: oss_region
+    type: string
+  - name: sls_region
+    type: string
+  - name: log_account_id
+    type: string
+  # ActionTrail variables
+  - name: enable_actiontrail_oss_delivery
+    type: bool
+    default: false
+  - name: enable_actiontrail_sls_delivery
+    type: bool
+    default: true
+  - name: actiontrail_trail_name
+    type: string
+    default: "landingzone-actiontrail"
+  - name: actiontrail_trail_status
+    type: string
+    default: "Enable"
+  - name: actiontrail_event_type
+    type: string
+    default: "Write"
+  - name: actiontrail_trail_region
+    type: string
+    default: "All"
+  - name: actiontrail_is_organization_trail
+    type: bool
+    default: true
+  - name: actiontrail_oss_bucket_name
+    type: string
+    default: "null"
+  - name: actiontrail_oss_log_retention_days
+    type: number
+    default: 730
+  - name: actiontrail_oss_server_side_encryption_enabled
+    type: bool
+    default: true
+  - name: actiontrail_oss_server_side_encryption_algorithm
+    type: string
+    default: "AES256"
+  - name: actiontrail_oss_write_role_arn
+    type: string
+    default: "null"
+  - name: actiontrail_oss_force_destroy
+    type: bool
+    default: true
+  - name: actiontrail_sls_project_name
+    type: string
+    default: "null"
+  - name: actiontrail_sls_project_description
+    type: string
+    default: "Landing Zone ActionTrail logs storage"
+  - name: actiontrail_sls_logstore_name
+    type: string
+    default: "actiontrail-store"
+  - name: actiontrail_sls_retention_period
+    type: number
+    default: 180
+  - name: actiontrail_sls_write_role_arn
+    type: string
+    default: "null"
+  - name: actiontrail_tags
+    type: map(string)
+    default: {}
+  # Config variables
+  - name: config_oss_enabled
+    type: bool
+    default: true
+  - name: config_oss_bucket_name
+    type: string
+    default: "null"
+  - name: config_oss_bucket_force_destroy
+    type: bool
+    default: false
+  - name: config_oss_bucket_versioning
+    type: bool
+    default: true
+  - name: config_oss_bucket_tags
+    type: map(string)
+    default: {}
+  - name: config_oss_bucket_storage_class
+    type: string
+    default: "Standard"
+  - name: config_oss_bucket_acl
+    type: string
+    default: "private"
+  - name: config_oss_bucket_lifecycle_rule_enabled
+    type: bool
+    default: true
+  - name: config_oss_bucket_lifecycle_expiration_days
+    type: number
+    default: 730
+  - name: config_oss_bucket_server_side_encryption_enabled
+    type: bool
+    default: true
+  - name: config_oss_bucket_server_side_encryption_algorithm
+    type: string
+    default: "AES256"
+  - name: config_sls_enabled
+    type: bool
+    default: true
+  - name: config_sls_project_name
+    type: string
+    default: "null"
+  - name: config_sls_project_description
+    type: string
+    default: "Landing Zone Config delivery project"
+  - name: config_sls_project_tags
+    type: map(string)
+    default: {}
+  - name: config_sls_logstore_name
+    type: string
+    default: "config-logstore"
+  - name: config_sls_logstore_retention_period
+    type: number
+    default: 180
+  - name: config_sls_logstore_shard_count
+    type: number
+    default: 2
+  - name: config_sls_logstore_auto_split
+    type: bool
+    default: true
+  - name: config_sls_logstore_max_split_shard_count
+    type: number
+    default: 64
+  - name: config_aggregator_name
+    type: string
+    default: "landingzone-all"
+  - name: config_aggregator_description
+    type: string
+    default: "Landing Zone Config Aggregator for all accounts"
+
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.253.0"
+
+provider:
+  - type: alicloud
+    name: actiontrail
+    config:
+      region: var.actiontrail_region
+      assume_role:
+        role_arn: "acs:ram::${var.log_account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+  - type: alicloud
+    name: config
+    config:
+      region: var.config_region
+      assume_role:
+        role_arn: "acs:ram::${var.log_account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+  - type: alicloud
+    name: oss
+    config:
+      region: var.oss_region
+      assume_role:
+        role_arn: "acs:ram::${var.log_account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+  - type: alicloud
+    name: sls
+    config:
+      region: var.sls_region
+      assume_role:
+        role_arn: "acs:ram::${var.log_account_id}:role/ResourceDirectoryAccountAccessRole"
+        session_name: "landing-zone-accelerator"
+        session_expiration: 3600
+
+component:
+  - name: actiontrail
+    source: "../../components/log-archive/actiontrail"
+    inputs:
+      enable_oss_delivery: var.enable_actiontrail_oss_delivery
+      enable_sls_delivery: var.enable_actiontrail_sls_delivery
+      trail_name: var.actiontrail_trail_name
+      trail_status: var.actiontrail_trail_status
+      event_type: var.actiontrail_event_type
+      trail_region: var.actiontrail_trail_region
+      is_organization_trail: var.actiontrail_is_organization_trail
+      oss_bucket_name: var.actiontrail_oss_bucket_name
+      oss_log_retention_days: var.actiontrail_oss_log_retention_days
+      oss_server_side_encryption_enabled: var.actiontrail_oss_server_side_encryption_enabled
+      oss_server_side_encryption_algorithm: var.actiontrail_oss_server_side_encryption_algorithm
+      oss_write_role_arn: var.actiontrail_oss_write_role_arn
+      oss_force_destroy: var.actiontrail_oss_force_destroy
+      sls_project_name: var.actiontrail_sls_project_name
+      sls_project_description: var.actiontrail_sls_project_description
+      sls_logstore_name: var.actiontrail_sls_logstore_name
+      sls_retention_period: var.actiontrail_sls_retention_period
+      sls_write_role_arn: var.actiontrail_sls_write_role_arn
+      tags: var.actiontrail_tags
+    providers:
+      alicloud.log_archive: provider.alicloud.actiontrail
+      alicloud.oss: provider.alicloud.oss
+      alicloud.sls: provider.alicloud.sls
+  - name: config
+    source: "../../components/log-archive/config"
+    inputs:
+      oss_enabled: var.config_oss_enabled
+      oss_bucket_name: var.config_oss_bucket_name
+      oss_bucket_force_destroy: var.config_oss_bucket_force_destroy
+      oss_bucket_versioning: var.config_oss_bucket_versioning
+      oss_bucket_tags: var.config_oss_bucket_tags
+      oss_bucket_storage_class: var.config_oss_bucket_storage_class
+      oss_bucket_acl: var.config_oss_bucket_acl
+      oss_bucket_lifecycle_rule_enabled: var.config_oss_bucket_lifecycle_rule_enabled
+      oss_bucket_lifecycle_expiration_days: var.config_oss_bucket_lifecycle_expiration_days
+      oss_bucket_server_side_encryption_enabled: var.config_oss_bucket_server_side_encryption_enabled
+      oss_bucket_server_side_encryption_algorithm: var.config_oss_bucket_server_side_encryption_algorithm
+      sls_enabled: var.config_sls_enabled
+      sls_project_name: var.config_sls_project_name
+      sls_project_description: var.config_sls_project_description
+      sls_project_tags: var.config_sls_project_tags
+      sls_logstore_name: var.config_sls_logstore_name
+      sls_logstore_retention_period: var.config_sls_logstore_retention_period
+      sls_logstore_shard_count: var.config_sls_logstore_shard_count
+      sls_logstore_auto_split: var.config_sls_logstore_auto_split
+      sls_logstore_max_split_shard_count: var.config_sls_logstore_max_split_shard_count
+      config_aggregator_name: var.config_aggregator_name
+      config_aggregator_description: var.config_aggregator_description
+    providers:
+      alicloud.log_archive: provider.alicloud.config
+      alicloud.oss: provider.alicloud.oss
+      alicloud.sls: provider.alicloud.sls
+
+output:
+  # ActionTrail outputs
+  - name: actiontrail_trail_id
+    type: string
+    description: "The ID of the ActionTrail trail"
+    value: component.actiontrail.trail_id
+  - name: actiontrail_trail_name
+    type: string
+    description: "The name of the ActionTrail trail"
+    value: component.actiontrail.trail_name
+  - name: actiontrail_oss_bucket_name
+    type: string
+    description: "The name of the OSS bucket for ActionTrail logs"
+    value: component.actiontrail.oss_bucket_name
+  - name: actiontrail_sls_project_name
+    type: string
+    description: "The name of the SLS project for ActionTrail logs"
+    value: component.actiontrail.sls_project_name
+  - name: actiontrail_sls_logstore_name
+    type: string
+    description: "The name of the SLS logstore for ActionTrail logs"
+    value: component.actiontrail.sls_logstore_name
+  # Config outputs
+  - name: config_aggregator_id
+    type: string
+    description: "The ID of the config aggregator"
+    value: component.config.config_aggregator_id
+  - name: config_aggregator_name
+    type: string
+    description: "The name of the config aggregator"
+    value: component.config.config_aggregator_name
+  - name: config_oss_bucket_name
+    type: string
+    description: "The name of the OSS bucket for config delivery"
+    value: component.config.oss_bucket_name
+  - name: config_oss_extranet_endpoint
+    type: string
+    description: "The extranet access endpoint of the OSS bucket for config delivery"
+    value: component.config.oss_extranet_endpoint
+  - name: config_oss_intranet_endpoint
+    type: string
+    description: "The intranet access endpoint of the OSS bucket for config delivery"
+    value: component.config.oss_intranet_endpoint
+  - name: config_sls_project_name
+    type: string
+    description: "The name of the SLS project for config delivery"
+    value: component.config.sls_project_name
+  - name: config_sls_project_description
+    type: string
+    description: "The description of the SLS project for config delivery"
+    value: component.config.sls_project_description
+  - name: config_sls_logstore_name
+    type: string
+    description: "The name of the SLS logstore for config delivery"
+    value: component.config.sls_logstore_name
+  - name: config_sls_retention_period
+    type: number
+    description: "The retention period of the SLS logstore for config delivery"
+    value: component.config.sls_retention_period
+  - name: config_delivery_channel_ids
+    type: list(string)
+    description: "The IDs of the config delivery channels"
+    value: component.config.config_delivery_channel_ids

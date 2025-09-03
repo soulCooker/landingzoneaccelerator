@@ -1,0 +1,13 @@
+format_version: IaCService/2021-08-06
+description: 创建账号
+
+deployment:
+  - name: account
+    inputs:
+      region: "cn-hangzhou"
+      account_name_prefix: "accelerator"
+
+publish_output:
+  - name: account_id
+    description: "The id of created account"
+    value: deployment.account.account_id

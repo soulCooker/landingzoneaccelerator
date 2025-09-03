@@ -1,0 +1,59 @@
+format_version: IaCService/2021-08-06
+description: 资源结构搭建
+
+deployment:
+  - name: resource_structure
+    inputs:
+      region: "cn-hangzhou"
+      core_folder_name: "Core"
+      account_mapping:
+        "log,security":
+          account_name_prefix: "security"
+          billing_type: "Trusteeship"
+        network:
+          account_name_prefix: "network"
+          display_name: "network"
+          billing_type: "Trusteeship"
+        shared_services:
+          account_name_prefix: "share-services"
+          billing_type: "Trusteeship"
+        operations:
+          account_name_prefix: "operations"
+          billing_type: "Trusteeship"
+        iam:
+          account_name_prefix: "iam"
+          billing_type: "Trusteeship"
+      delegated_services:
+        cloudfw.aliyuncs.com: "security"
+        sas.aliyuncs.com: "security"
+        waf.aliyuncs.com: "security"
+        actiontrail.aliyuncs.com: "log"
+        config.aliyuncs.com: "log"
+        audit.log.aliyuncs.com: "log"
+        cloudmonitor.aliyuncs.com: "operations"
+        prometheus.aliyuncs.com: "operations"
+        resourcecenter.aliyuncs.com: "operations"
+        tag.aliyuncs.com: "operations"
+        ros.aliyuncs.com: "shared_services"
+        cloudsso.aliyuncs.com: "iam"
+      
+publish_output:
+  - name: resource_directory_id
+    description: "The ID of the resource directory"
+    value: deployment.resource_structure.resource_directory_id
+  - name: root_folder_id
+    description: "The ID of the root folder"
+    value: deployment.resource_structure.root_folder_id
+  - name: core_folder_id
+    description: "The ID of the core folder"
+    value: deployment.resource_structure.core_folder_id
+  - name: accounts
+    description: "Information about created functional accounts"
+    value: deployment.resource_structure.accounts
+  - name: role_to_account_mapping
+    description: "Mapping of roles to account IDs"
+    value: deployment.resource_structure.role_to_account_mapping
+  - name: delegated_services
+    description: "Mapping of services to their delegated admin account IDs"
+    value: deployment.resource_structure.delegated_services
+  

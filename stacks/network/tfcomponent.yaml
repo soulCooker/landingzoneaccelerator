@@ -1,0 +1,213 @@
+format_version: IaCService/2021-08-06
+description: 网络模块搭建
+
+variable:
+  # Provider Configuration
+  - name: cen_account_id
+    type: string
+    description: "Account ID for CEN resources"
+  - name: dmz_account_id
+    type: string
+    description: "Account ID for DMZ resources"
+  - name: region
+    type: string
+    default: "cn-hangzhou"
+    description: "Region for network resources"
+
+  # CEN variables
+  - name: cen_instance_name
+    type: string
+    default: "null"
+  - name: cen_instance_description
+    type: string
+    default: "null"
+  - name: cen_instance_tags
+    type: map(string)
+    default: "null"
+  - name: transit_router_name
+    type: string
+    default: "null"
+  - name: transit_router_description
+    type: string
+    default: "null"
+  - name: transit_router_tags
+    type: map(string)
+    default: "null"
+
+  # DMZ variables
+  - name: dmz_vpc_name
+    type: string
+    default: "null"
+  - name: dmz_vpc_description
+    type: string
+    default: "null"
+  - name: dmz_vpc_cidr
+    type: string
+  - name: dmz_egress_nat_gateway_name
+    type: string
+    default: "null"
+  - name: dmz_egress_eip_instances
+    type: | 
+      list(object({
+        payment_type     = optional(string, "PayAsYouGo")
+        period           = optional(number)
+        eip_address_name = optional(string)
+        tags             = optional(object({}))
+      }))
+    default: []
+  - name: dmz_enable_common_bandwidth_package
+    type: bool
+    default: true
+  - name: dmz_common_bandwidth_package_name
+    type: string
+    default: "null"
+  - name: dmz_common_bandwidth_package_bandwidth
+    type: string
+    default: "5"
+  - name: dmz_common_bandwidth_package_internet_charge_type
+    type: string
+    default: "PayByBandwidth"
+  - name: dmz_common_bandwidth_package_ratio
+    type: number
+    default: 20
+  - name: dmz_vswitch_for_tr
+    type: |
+      list(object({
+        zone_id             = string
+        vswitch_name        = string
+        vswitch_description = string
+        vswitch_cidr        = string
+      }))
+  - name: dmz_vswitch_for_nat_gateway
+    type: |
+      object({
+        zone_id             = string
+        vswitch_name        = string
+        vswitch_description = string
+        vswitch_cidr        = string
+      })
+  - name: dmz_vswitch
+    type: | 
+      list(object({
+        zone_id             = string
+        vswitch_name        = string
+        vswitch_description = string
+        vswitch_cidr        = string
+      }))
+  - name: dmz_tr_attachment_name
+    type: string
+    default: ""
+  - name: dmz_tr_attachment_description
+    type: string
+    default: ""
+  - name: dmz_outbound_route_entry_name
+    type: string
+    default: "null"
+  - name: dmz_outbound_route_entry_description
+    type: string
+    default: "null"
+
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.253.0"
+
+provider:
+  - type: alicloud
+    name: cen
+    config:
+      region: var.region
+      assume_role:
+        role_arn: "acs:ram::${var.cen_account_id}:role/resourcedirectoryaccountaccessrole"
+  - type: alicloud
+    name: dmz
+    config:
+      region: var.region
+      assume_role:
+        role_arn: "acs:ram::${var.dmz_account_id}:role/resourcedirectoryaccountaccessrole"
+
+component:
+  # CEN component
+  - name: cen
+    source: "../../components/network/cen"
+    inputs:
+      cen_instance_name: var.cen_instance_name
+      cen_instance_description: var.cen_instance_description
+      cen_instance_tags: var.cen_instance_tags
+      transit_router_name: var.transit_router_name
+      transit_router_description: var.transit_router_description
+      transit_router_tags: var.transit_router_tags
+    providers:
+      alicloud: provider.alicloud.cen
+
+  # DMZ component
+  - name: dmz
+    source: "../../components/network/dmz"
+    inputs:
+      cen_instance_id: component.cen.cen_instance_id
+      cen_transit_router_id: component.cen.transit_router_id
+      transit_router_route_table_id: component.cen.system_transit_router_route_table_id
+      dmz_vpc_name: var.dmz_vpc_name
+      dmz_vpc_description: var.dmz_vpc_description
+      dmz_vpc_cidr: var.dmz_vpc_cidr
+      dmz_egress_nat_gateway_name: var.dmz_egress_nat_gateway_name
+      dmz_egress_eip_instances: var.dmz_egress_eip_instances
+      dmz_enable_common_bandwidth_package: var.dmz_enable_common_bandwidth_package
+      dmz_common_bandwidth_package_name: var.dmz_common_bandwidth_package_name
+      dmz_common_bandwidth_package_bandwidth: var.dmz_common_bandwidth_package_bandwidth
+      dmz_common_bandwidth_package_internet_charge_type: var.dmz_common_bandwidth_package_internet_charge_type
+      dmz_common_bandwidth_package_ratio: var.dmz_common_bandwidth_package_ratio
+      dmz_vswitch_for_tr: var.dmz_vswitch_for_tr
+      dmz_vswitch_for_nat_gateway: var.dmz_vswitch_for_nat_gateway
+      dmz_vswitch: var.dmz_vswitch
+      dmz_tr_attachment_name: var.dmz_tr_attachment_name
+      dmz_tr_attachment_description: var.dmz_tr_attachment_description
+      dmz_outbound_route_entry_name: var.dmz_outbound_route_entry_name
+      dmz_outbound_route_entry_description: var.dmz_outbound_route_entry_description
+    providers:
+      alicloud.dmz: provider.alicloud.dmz
+      alicloud.cen: provider.alicloud.cen
+
+output:
+  # CEN outputs
+  - name: cen_instance_id
+    description: "The ID of the CEN instance"
+    value: component.cen.cen_instance_id
+  - name: transit_router_id
+    description: "The ID of the Transit Router"
+    value: component.cen.transit_router_id
+  - name: system_transit_router_route_table_id
+    description: "The ID of the system transit router route table"
+    value: component.cen.system_transit_router_route_table_id
+
+  # DMZ outputs
+  - name: dmz_vpc_id
+    description: "The ID of the DMZ VPC"
+    value: component.dmz.dmz_vpc_id
+  - name: dmz_route_table_id
+    description: "The route table ID of the DMZ VPC"
+    value: component.dmz.dmz_route_table_id
+  - name: dmz_nat_gateway_id
+    description: "The ID of the DMZ NAT Gateway"
+    value: component.dmz.nat_gateway_id
+  - name: dmz_transit_router_attachment_id
+    description: "The ID of the DMZ Transit Router attachment"
+    value: component.dmz.transit_router_vpc_attachment_id
+  - name: dmz_transit_router_outbound_route_entry_id
+    description: "The ID of the DMZ outbound route entry"
+    value: component.dmz.transit_router_outbound_route_entry_id
+  - name: dmz_eip_instances
+    description: "The EIP instances created for DMZ"
+    value: component.dmz.eip_instances
+  - name: dmz_common_bandwidth_package_id
+    description: "The ID of the DMZ common bandwidth package"
+    value: component.dmz.common_bandwidth_package_id
+  - name: dmz_vswitch_for_tr
+    description: "The Transit Router vswitches for DMZ"
+    value: component.dmz.dmz_vswitch_for_tr
+  - name: dmz_vswitch_for_nat_gateway
+    description: "The NAT Gateway vswitch for DMZ"
+    value: component.dmz.dmz_vswitch_for_nat_gateway
+  - name: dmz_vswitch
+    description: "The general vswitches for DMZ"
+    value: component.dmz.dmz_vswitch

@@ -1,0 +1,70 @@
+format_version: IaCService/2021-08-06
+description: 资源结构搭建 
+
+variable:
+  - name: region
+    type: string
+  - name: core_folder_name
+    type: string
+    default: "Core"
+  - name: account_mapping
+    type: |
+      map(object({
+        account_name_prefix        = string
+        display_name       = optional(string)
+        billing_type       = optional(string, "Trusteeship")
+        billing_account_id = optional(string)
+      }))
+    default: {}
+  - name: delegated_services
+    type: map(string)
+    default: {}
+
+required_providers:
+  - name: alicloud
+    source: hashicorp/alicloud
+    version: "~> 1.253.0"
+
+provider:
+  - type: alicloud
+    name: this
+    config:
+      region: var.region
+
+component:
+  - name: resource_structure
+    source: "../../components/resource-structure"
+    inputs:
+      core_folder_name: var.core_folder_name
+      account_mapping: var.account_mapping
+      delegated_services: var.delegated_services
+    providers:
+      alicloud: provider.alicloud.this
+
+output:
+  - name: resource_directory_id
+    type: string
+    description: "The ID of the resource directory"
+    value: component.resource_structure.resource_directory_id
+  - name: root_folder_id
+    type: string
+    description: "The ID of the root folder"
+    value: component.resource_structure.root_folder_id
+  - name: core_folder_id
+    type: string
+    description: "The ID of the core folder"
+    value: component.resource_structure.core_folder_id
+  - name: accounts
+    type: any
+    description: "Information about created functional accounts"
+    value: component.resource_structure.accounts
+  - name: role_to_account_mapping
+    type: any
+    description: "Mapping of roles to account IDs"
+    value: component.resource_structure.role_to_account_mapping
+  - name: delegated_services
+    type: any
+    description: "Mapping of services to their delegated admin account IDs"
+    value: component.resource_structure.delegated_services
+
+

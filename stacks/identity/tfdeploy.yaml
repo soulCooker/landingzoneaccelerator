@@ -1,0 +1,47 @@
+format_version: IaCService/2021-08-06
+description: 身份管理实施
+
+upstream_input:
+  - name: resource_structure_stack
+    type: stack
+    source: "iac.aliyuncs.com/1857855749528871/resource-structure-new"
+
+deployment:
+  - name: identity
+    inputs:
+      region: "cn-shanghai"
+      iam_account_id: "{{ upstream_input.resource_structure_stack.role_to_account_mapping.iam }}"
+      directory_name: "landingzone-accelerator-20250901"
+      enable_default_access_configurations: true
+      access_configurations:
+        - name: "CustomEcsAdmin"
+          description: "Custom admin access configuration"
+          session_duration: 7200
+          managed_system_policies: ["AliyunECSFullAccess"]
+          inline_custom_policy:
+            policy_name: "CustomInlinePolicy"
+            policy_document: |
+              {
+                "Version": "1",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": ["oss:GetObject"],
+                    "Resource": "*"
+                  }
+                ]
+              }
+
+publish_output:
+  - name: directory_id
+    description: "The ID of the CloudSSO directory"
+    value: deployment.identity.directory_id
+  - name: directory_name
+    description: "The name of the CloudSSO directory"
+    value: deployment.identity.directory_name
+  - name: default_access_configuration_ids
+    description: "The IDs of the default access configurations"
+    value: deployment.identity.default_access_configuration_ids
+  - name: custom_access_configuration_ids
+    description: "The IDs of the custom access configurations"
+    value: deployment.identity.custom_access_configuration_ids
