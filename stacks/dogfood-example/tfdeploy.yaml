@@ -1,10 +1,10 @@
 format_version: IaCService/2021-08-06
 description: 创建开发和生产环境
 deployment:
-  - name: development
-    inputs:
-      region: "cn-shanghai"
-      vpc_name: "vpc-dev-change"
-      vpc_cidr: "192.168.0.0/16"
-      zone_ids: ["cn-shanghai-b", "cn-shanghai-k"]
-      vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
+  # - name: development
+  #   inputs:
+  #     region: "cn-shanghai"
+  #     vpc_name: "vpc-dev-change"
+  #     vpc_cidr: "192.168.0.0/16"
+  #     zone_ids: ["cn-shanghai-b", "cn-shanghai-k"]
+  #     vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
