@@ -13,7 +13,7 @@ permissions:
 jobs:
   get_trigger_info:
     if: github.event.issue.pull_request
-    uses: shanye997/iac-github-governance/.github/workflows/get-pull-request-info.yml@627ff9c14d4da174525782c280ab4907c4c6e88c
+    uses: soulCooker/iac-github-governance/.github/workflows/get-pull-request-info.yml@627ff9c14d4da174525782c280ab4907c4c6e88c
     secrets: inherit
     with:
       pr_number: ${{ github.event.issue.number }}
@@ -21,7 +21,7 @@ jobs:
 
   process_trigger_file:
     needs: get_trigger_info
-    uses: shanye997/iac-github-governance/.github/workflows/upload-trigger-file.yml@627ff9c14d4da174525782c280ab4907c4c6e88c
+    uses: soulCooker/iac-github-governance/.github/workflows/upload-trigger-file.yml@627ff9c14d4da174525782c280ab4907c4c6e88c
     secrets: inherit
     with:
       command: ${{ needs.get_trigger_info.outputs.command }}
@@ -38,7 +38,7 @@ jobs:
       - name: Checkout scripts
         uses: actions/checkout@v4
         with:
-          repository: shanye997/iac-github-governance
+          repository: soulCooker/iac-github-governance
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: 627ff9c14d4da174525782c280ab4907c4c6e88c
           sparse-checkout: |
