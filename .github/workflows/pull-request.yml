@@ -9,7 +9,7 @@ on:
 jobs:
   process_code:
     if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
-    uses: shanye997/iac-github-governance/.github/workflows/upload-source-package.yml@main
+    uses: soulCooker/iac-github-governance/.github/workflows/upload-source-package.yml@main
     secrets: inherit
     with:
       base_ref: ${{ github.base_ref }}
