@@ -4,14 +4,7 @@ deployment:
   - name: development
     inputs:
       region: "cn-shanghai"
-      vpc_name: "vpc-dev"
+      vpc_name: "vpc-dev-change"
       vpc_cidr: "192.168.0.0/16"
       zone_ids: ["cn-shanghai-b", "cn-shanghai-k"]
-      vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
-  - name: production
-    inputs:
-      region: "cn-beijing"
-      vpc_name: "vpc-prod"
-      vpc_cidr: "192.168.0.0/16"
-      zone_ids: ["cn-beijing-l", "cn-beijing-k"]
       vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
