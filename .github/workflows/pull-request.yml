@@ -9,8 +9,10 @@ on:
 jobs:
   process_code:
     if: github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
-    uses: soulCooker/iac-github-governance/.github/workflows/upload-source-package.yml@main
+    uses: soulCooker/iac-github-governance/.github/workflows/upload-source-package.yml@97f3d108a328cf9b9e83accf91342a4c662cfe13
     secrets: inherit
     with:
       base_ref: ${{ github.base_ref }}
       head_sha: ${{ github.event.pull_request.head.sha }}
+      IAC_GOVERNANCE_REPO: soulCooker/iac-github-governance
+      IAC_GOVERNANCE_REF: 97f3d108a328cf9b9e83accf91342a4c662cfe13

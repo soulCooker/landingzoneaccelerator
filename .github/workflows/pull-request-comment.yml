@@ -13,7 +13,7 @@ permissions:
 jobs:
   get_trigger_info:
     if: github.event.issue.pull_request
-    uses: soulCooker/iac-github-governance/.github/workflows/get-pull-request-info.yml@627ff9c14d4da174525782c280ab4907c4c6e88c
+    uses: soulCooker/iac-github-governance/.github/workflows/get-pull-request-info.yml@97f3d108a328cf9b9e83accf91342a4c662cfe13
     secrets: inherit
     with:
       pr_number: ${{ github.event.issue.number }}
@@ -21,7 +21,7 @@ jobs:
 
   process_trigger_file:
     needs: get_trigger_info
-    uses: soulCooker/iac-github-governance/.github/workflows/upload-trigger-file.yml@627ff9c14d4da174525782c280ab4907c4c6e88c
+    uses: soulCooker/iac-github-governance/.github/workflows/upload-trigger-file.yml@97f3d108a328cf9b9e83accf91342a4c662cfe13
     secrets: inherit
     with:
       command: ${{ needs.get_trigger_info.outputs.command }}
@@ -29,6 +29,8 @@ jobs:
       head_sha: ${{ needs.get_trigger_info.outputs.head_sha }}
       changed_files: ${{ needs.get_trigger_info.outputs.changed_files }}
       trigger_file_name: "PR${{ github.event.issue.number }}-[${{ github.actor }}]-${{ github.run_number }}.json"
+      IAC_GOVERNANCE_REPO: soulCooker/iac-github-governance
+      IAC_GOVERNANCE_REF: 97f3d108a328cf9b9e83accf91342a4c662cfe13
 
 
   get_exec_result:
@@ -40,7 +42,7 @@ jobs:
         with:
           repository: soulCooker/iac-github-governance
           token: ${{ secrets.GITHUB_TOKEN }}
-          ref: 627ff9c14d4da174525782c280ab4907c4c6e88c
+          ref: 97f3d108a328cf9b9e83accf91342a4c662cfe13
           sparse-checkout: |
             scripts/parse_exec_result.py
 
