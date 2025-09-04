@@ -1,0 +1,142 @@
+# .github/workflows/shared-ci-upload-trigger.yml
+name: Upload Trigger File to OSS
+
+on:
+  workflow_call:
+    inputs:
+      base_ref:
+        required: true
+        type: string
+      head_sha:
+        required: true
+        type: string
+      command:
+        required: true
+        type: string
+      changed_files:
+        required: true
+        type: string
+      trigger_file_name:
+        required: true
+        type: string
+      IAC_GOVERNANCE_REPO:
+        required: true
+        type: string
+      IAC_GOVERNANCE_REF:
+        required: true
+        type: string
+
+    outputs:
+      result_path:
+        description: "The log path of the execution result"
+        value: ${{ jobs.create_comment_trigger.outputs.result_path }}
+
+env:
+  OSS_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
+  OSS_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
+  OSS_BUCKET: ${{ vars.OSS_BUCKET }}
+  OSS_REGION: ${{ vars.OSS_REGION }}
+
+jobs:
+  create_comment_trigger:
+    runs-on: ubuntu-latest
+    outputs:
+      result_path: ${{ steps.create_trigger_event_file.outputs.RESULT_PATH }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: code
+          ref: ${{ inputs.head_sha }}
+
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.IAC_GOVERNANCE_REPO }}
+          path: governance
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.IAC_GOVERNANCE_REF }}
+          sparse-checkout: |
+            scripts/upload_to_oss.py
+
+      - name: Setup Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install alibabacloud-oss-v2
+
+      - name: Check source package version
+        id: check_source_package_version
+        run: |
+
+          echo "Creating source package..."
+          cd code && zip -q -r ../code.zip . -x "*.git*" "*.terraform*" && cd ..
+          if [ ! -f code.zip ]; then
+            echo "Error: Failed to create code.zip"
+            exit 1
+          fi
+          echo "Created code.zip with size:"
+          ls -lh code.zip
+
+          object_path="repositories/${{ github.repository }}/${{ inputs.base_ref }}"
+          echo "OBJECT_PATH=$object_path" >> $GITHUB_OUTPUT
+          code_path="${object_path}/code.zip"
+
+          echo "Uploading to OSS with key: $code_path"
+          output=$(python governance/scripts/upload_to_oss.py --key="$code_path" --file_path=code.zip --unique_key="${{ inputs.head_sha }}" 2>&1)
+
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Failed to upload to OSS"
+            echo "$output"
+            exit 1
+          fi
+
+          echo "INFO: Upload successfully"
+          echo "$output"
+          version_id=$(echo "$output" | grep -o 'Version ID: [^,]*' | sed 's/.*Version ID: //')
+
+          if [ -z "$version_id" ]; then
+            echo "Warning: Could not extract version_id from output"
+            version_id=""
+          fi
+
+          echo "VERSION_ID=$version_id" >> $GITHUB_OUTPUT
+
+      - name: Create and upload trigger event file
+        id: create_trigger_event_file
+        run: |
+
+          oss_path="oss::https://${{ vars.OSS_BUCKET }}.oss-${{ vars.OSS_REGION }}.aliyuncs.com"
+
+          trigger_file_name="${{ inputs.trigger_file_name }}"
+          trigger_path="${{ steps.check_source_package_version.outputs.OBJECT_PATH }}/${trigger_file_name}"
+
+          code_path="${oss_path}/${{ steps.check_source_package_version.outputs.OBJECT_PATH }}/code.zip"
+          result_path="${oss_path}/notifications/${{ github.repository }}/${{ inputs.base_ref }}/${trigger_file_name}"
+          echo "RESULT_PATH=$result_path" >> $GITHUB_OUTPUT
+
+          # Remove .json suffix from trigger_file_name for id field
+          trigger_id="${{ inputs.trigger_file_name }}"
+          trigger_id="${trigger_id%.json}"
+
+          echo "Creating trigger event file for command: ${{ inputs.command }}"
+          cat > trigger-event.json << EOF
+          {
+            "id": "$trigger_id",
+            "action": "${{ inputs.command }}",
+            "codeHeadSha": "${{ inputs.head_sha }}",
+            "codeVersionId": "${{ steps.check_source_package_version.outputs.VERSION_ID }}",
+            "codePackagePath": "$code_path",
+            "execResultPath": "$result_path",
+            "changedFolders": "${{ inputs.changed_files }}"
+          }
+          EOF
+
+          echo "Trigger event file content:"
+          cat trigger-event.json
+
+          python governance/scripts/upload_to_oss.py --key=$trigger_path --file_path=trigger-event.json

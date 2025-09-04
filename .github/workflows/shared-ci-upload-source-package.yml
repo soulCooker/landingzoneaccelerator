@@ -1,0 +1,81 @@
+# .github/workflows/shared-ci-upload-source-package.yml
+name: Upload Source Package to OSS
+
+on:
+  workflow_call:
+    inputs:
+      base_ref:
+        required: true
+        type: string
+      head_sha:
+        required: true
+        type: string
+      IAC_GOVERNANCE_REPO:
+        required: true
+        type: string
+      IAC_GOVERNANCE_REF:
+        required: true
+        type: string
+
+env:
+  OSS_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
+  OSS_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
+  OSS_BUCKET: ${{ vars.OSS_BUCKET }}
+  OSS_REGION: ${{ vars.OSS_REGION }}
+
+jobs:
+  upload_source_package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: code
+          ref: ${{ inputs.head_sha }}
+
+      - name: Checkout scripts
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.IAC_GOVERNANCE_REPO }}
+          path: governance
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.IAC_GOVERNANCE_REF }}
+          sparse-checkout: |
+            scripts/upload_to_oss.py
+
+      - name: Create source package
+        run: |
+          echo "Creating source package..."
+          cd code && zip -q -r ../code.zip . -x "*.git*" "*.terraform*" && cd ..
+          if [ ! -f code.zip ]; then
+            echo "Error: Failed to create code.zip"
+            exit 1
+          fi
+          echo "Created code.zip with size:"
+          ls -lh code.zip
+
+      - name: Setup Python environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install alibabacloud-oss-v2
+
+      - name: Upload source package
+        id: upload_source_package
+        run: |
+          object_path="repositories/${{ github.repository }}/${{ inputs.base_ref }}"
+          code_path="${object_path}/code.zip"
+
+          ls -all
+
+          echo "Uploading to OSS with key: $code_path"
+          python governance/scripts/upload_to_oss.py --key="$code_path" --file_path=code.zip --unique_key="${{ inputs.head_sha }}"
+
+          if [ $? -ne 0 ]; then
+            echo "Error: Failed to upload to OSS"
+            exit 1
+          fi
