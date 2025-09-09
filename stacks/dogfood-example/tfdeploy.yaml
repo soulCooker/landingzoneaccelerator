@@ -8,3 +8,10 @@ deployment:
       vpc_cidr: "192.168.0.0/16"
       zone_ids: ["cn-shanghai-b", "cn-shanghai-k"]
       vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
+  - name: gray
+    inputs:
+      region: "cn-hangzhou"
+      vpc_name: "vpc-gray-1"
+      vpc_cidr: "192.168.0.0/16"
+      zone_ids: ["cn-hangzhou-l", "cn-hangzhou-k"]
+      vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
