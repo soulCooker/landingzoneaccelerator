@@ -25,27 +25,13 @@ provider:
       region: var.region
 
 component:
-  - name: vpc
-    source: "alibaba/vpc/alicloud"
-    version: "1.11.0"
-    inputs:
-      vpc_name: var.vpc_name
-      vpc_cidr: var.vpc_cidr
-      availability_zones: var.zone_ids
-      vswitch_cidrs: var.vswitch_cidrs
-    providers:
-      alicloud: provider.alicloud.this
   - name: security_group
     source: "alibaba/security-group/alicloud"
     version: "2.4.1"
     inputs:
       create: true
-      vpc_id: component.vpc.vpc_id
+      vpc_id: vpc-bp150rqgn5nvvmgha549m
     providers:
       alicloud: provider.alicloud.this
 
 output:
-  - name: vpc_id
-    type: string
-    description: "The id of vpc created"
-    value: component.vpc.vpc_id
