@@ -30,7 +30,6 @@ component:
     version: "2.4.1"
     inputs:
       create: true
-      vpc_id: vpc-bp150rqgn5nvvmgha549m
     providers:
       alicloud: provider.alicloud.this
 
