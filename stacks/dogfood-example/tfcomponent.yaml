@@ -30,6 +30,7 @@ component:
     version: "2.4.1"
     inputs:
       create: true
+      name: "test_sg"
     providers:
       alicloud: provider.alicloud.this
 
