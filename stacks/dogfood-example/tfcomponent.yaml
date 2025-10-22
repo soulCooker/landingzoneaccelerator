@@ -12,6 +12,9 @@ variable:
     type: list(string)
   - name: vswitch_cidrs
     type: list(string)
+  - name: security_group_name
+    type: string
+    default: "test_sg"
 
 required_providers:
   - name: alicloud
@@ -30,7 +33,7 @@ component:
     version: "2.4.1"
     inputs:
       create: true
-      name: "test_sg"
+      name: var.security_group_name
     providers:
       alicloud: provider.alicloud.this
 
