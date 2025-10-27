@@ -20,7 +20,7 @@ deployment:
   - name: gray
     inputs:
       region: "cn-beijing"
-      vpc_name: "vpc-gray-2"
+      vpc_name: "vpc-gray-1"
       vpc_cidr: "192.168.0.0/16"
       zone_ids: ["cn-beijing-a", "cn-beijing-b"]
       vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
