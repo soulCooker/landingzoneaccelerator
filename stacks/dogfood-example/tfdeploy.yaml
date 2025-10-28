@@ -4,14 +4,28 @@ deployment:
   - name: development
     inputs:
       region: "cn-shanghai"
-      vpc_name: "vpc-dev-1"
+      vpc_name: "vpc-dev-1028"
       vpc_cidr: "192.168.0.0/16"
       zone_ids: ["cn-shanghai-b", "cn-shanghai-k"]
       vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
-  - name: gray
+      security_group_name: "test_sg_dev"
+  - name: publish
     inputs:
       region: "cn-hangzhou"
-      vpc_name: "vpc-gray-1"
+      vpc_name: "vpc-publish-1"
       vpc_cidr: "192.168.0.0/16"
       zone_ids: ["cn-hangzhou-l", "cn-hangzhou-k"]
       vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
+      security_group_name: "test_sg_publish"
+  - name: gray
+    inputs:
+      region: "cn-beijing"
+      vpc_name: "vpc-gray-1"
+      vpc_cidr: "192.168.0.0/16"
+      zone_ids: ["cn-beijing-a", "cn-beijing-b"]
+      vswitch_cidrs: ["192.168.1.0/24", "192.168.2.0/24"]
+      security_group_name: "test_sg_gray"
+publish_output:
+  - name: vpc_id
+    description: "The ID of the vpc"
+    value: deployment.development.vpc_id
